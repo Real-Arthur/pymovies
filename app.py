@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.sql import text
 from flask_marshmallow import Marshmallow
 import os
 
@@ -32,6 +33,26 @@ class Movie(db.Model):
         self.poster_path = poster_path
 
 
+# User class
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True)
+    password = db.Column(db.String(1000))
+
+    def __init__(self, username, password):
+        self.username = username
+        self.password = password
+
+
+# User_Movie class
+class UserMovie(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    movie_id = db.Column(db.Integer)
+
+    def __init__(self, user_id, movie_id):
+        self.user_id = user_id
+        self.movie_id = movie_id
 
 
 # Movie Schema
@@ -39,10 +60,24 @@ class MovieSchema(mv.Schema):
     class Meta:
         fields = ('id', 'title', 'overview', 'release_date', 'poster_path')
 
+# User Schema
+class UserSchema(mv.Schema):
+    class Meta:
+        fields = ('id', 'username')
+
+# User_Movie Schema
+class UserMovieSchema(mv.Schema):
+    class Meta:
+        fields = ('id', 'user_id', 'movie_id')
+
 
 # Init schema
 movie_schema = MovieSchema()
 movies_schema = MovieSchema(many=True)
+user_schema = UserSchema()
+users_schema = UserSchema(many=True)
+# user_movie_schema = UserMovieSchema()
+user_movie_schema = UserMovieSchema(many=True)
 
 
 # Create a Movie
@@ -58,19 +93,39 @@ def add_movie():
     return movie_schema.jsonify(new_movie)
 
 
+# Create new User
+@app.route('/user', methods=['POST'])
+def add_user():
+    username = request.json['username']
+    password = request.json['password']
+    new_user = User(username, password)
+    db.session.add(new_user)
+    db.session.commit()
+    return user_schema.jsonify(new_user)
+
+
 # Get all Movies
 @app.route('/movies', methods=['GET'])
 def get_movies():
     all_movies = Movie.query.all()
+    print(all_movies)
     result = movies_schema.dump(all_movies)
+    print(result)
     return jsonify(result)
 
 
-# # Get one product
-# @app.route('/product/<id>', methods=['GET'])
-# def get_product(id):
-#     product = Product.query.get(id)
-#     return product_schema.jsonify(product)
+# Get one user
+@app.route('/user/<username>', methods=['GET'])
+def get_user(username):
+    user = User.query.get(username)
+    return user_schema.jsonify(user)
+
+# All movies by user Id 
+@app.route('/movies/<userId>', methods=['GET'])
+def get_user_movies(userId):
+    all_movies = UserMovie.query.filter(UserMovie.user_id == text(userId)).all()
+    print(all_movies)
+    return user_movie_schema.jsonify(all_movies)
 
 
 # # Update a Product

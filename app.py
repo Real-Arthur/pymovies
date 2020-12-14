@@ -47,7 +47,7 @@ class User(db.Model):
 # User_Movie class
 class UserMovie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer)
     movie_id = db.Column(db.Integer)
 
     def __init__(self, user_id, movie_id):
@@ -90,7 +90,7 @@ def add_movie():
     new_movie = Movie(title, overview, release_date, poster_path)
     db.session.add(new_movie)
     db.session.commit()
-    return movie_schema.jsonify(new_movie)
+    return user_movie_schema.jsonify(new_movie)
 
 
 # Create new User
@@ -104,6 +104,17 @@ def add_user():
     return user_schema.jsonify(new_user)
 
 
+# Add a movie to the user's collection
+@app.route('/library/<userId>', methods=['POST'])
+def add_to_collection(userId):
+    movie_id = request.json['movie_id']
+    user_id = int(userId)
+    new_entry = UserMovie(user_id, movie_id)
+    db.session.add(new_entry)
+    db.session.commit()
+    return user_movie_schema.dump(new_entry)
+
+
 # Get all Movies
 @app.route('/movies', methods=['GET'])
 def get_movies():
@@ -114,14 +125,25 @@ def get_movies():
     return jsonify(result)
 
 
+# Get all Users
+@app.route('/user', methods=['GET'])
+def get_all_users():
+    all_users = User.query.all()
+    print(all_users)
+    result = users_schema.dump(all_users)
+    print(result)
+    return jsonify(result)
+
+
 # Get one user
-@app.route('/user/<username>', methods=['GET'])
-def get_user(username):
-    user = User.query.get(username)
+@app.route('/user/<userId>', methods=['GET'])
+def get_user(userId):
+    user = User.query.get(userId)
     return user_schema.jsonify(user)
 
+
 # All movies by user Id 
-@app.route('/movies/<userId>', methods=['GET'])
+@app.route('/library/<userId>', methods=['GET'])
 def get_user_movies(userId):
     all_movies = UserMovie.query.filter(UserMovie.user_id == text(userId)).all()
     print(all_movies)

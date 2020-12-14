@@ -6,9 +6,10 @@ import os
 # init app
 app = Flask(__name__)
 # basedir = os.path.abspath(os.path.dirname(__file__))
+password = os.environ.get("password")
 
 # Database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:Woxnsk19@localhost/cast_watch'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+mysqlconnector://root:{password}@localhost/cast_watch'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # init db
 db = SQLAlchemy(app)
